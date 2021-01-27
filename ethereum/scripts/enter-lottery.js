@@ -1,8 +1,12 @@
+// npx truffle exec scripts/enter-lottery.js --network kovan
+
 const LottoBuffalo = artifacts.require('LottoBuffalo')
 
 const { LinkToken } = require('@chainlink/contracts/truffle/v0.4/LinkToken')
 const { Oracle } = require('@chainlink/contracts/truffle/v0.6/Oracle')
 // const { VRFCoordinator } = require('@chainlink/contracts/truffle/v0.6/VRFCoordinator')
+
+const truffle_config = require('../truffle-config.js');
 
 /*
   This script makes it easy to read the data variable
@@ -10,11 +14,37 @@ const { Oracle } = require('@chainlink/contracts/truffle/v0.6/Oracle')
 */
 
 module.exports = async callback => {
+
   try {
-    Address = {
-      LINK: '0xF4d0e956464396cEBC998F60C0AB8720161fa4c2',
-      VRF: '0x88Fd2bAd06285b90341458731dEc2c180cd2e892'
+
+    const networkId = await web3.eth.net.getId();
+    console.log("networkId =", networkId);
+
+    const networkIdName = {
+       1: 'mainnet',
+       3: 'ropsten',
+       4: 'rinkeby',
+       5: 'goerli',
+      42: "kovan",
+    5777: 'development'  // Ganache
     }
+
+    const network = networkIdName[networkId];
+
+    console.log("network   =", network);
+
+    const network_config = truffle_config.networks[network];
+
+    const Address = {
+      LINK:   network_config.LINK,
+      VRF:    network_config.VRF_COORDINATOR,
+      ORACLE: network_config.ALARM_ORACLE
+    }
+
+    console.log(Address);
+
+    // console.log("web3.eth", web3.eth);
+    // console.log("web3.currentProvider=", web3.currentProvider);
 
     Oracle.setProvider(web3.eth.currentProvider)
     LinkToken.setProvider(web3.eth.currentProvider)
@@ -57,7 +87,7 @@ module.exports = async callback => {
       console.log(`Alarm Address: ${_alarmAddress}`)
       console.log(`Alarm Job Id: ${_alarmJobId}`)
     }
-    
+
     await display()
 
     const isOpen = await lotto.isOpen()
