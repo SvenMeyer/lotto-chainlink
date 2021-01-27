@@ -5,7 +5,7 @@ import "@chainlink/contracts/src/v0.6/VRFRequestIDBase.sol";
 import "@chainlink/contracts/src/v0.6/VRFConsumerBase.sol";
 
 import {Governance} from "./interfaces/Governance.sol";
-import {Lottery} from "./interfaces/Lottery.sol";
+import {Lottery}    from "./interfaces/Lottery.sol";
 
 contract RandomNumberConsumer is VRFConsumerBase {
     Governance public governance;
@@ -34,19 +34,27 @@ contract RandomNumberConsumer is VRFConsumerBase {
      * Chainlink VRF Coordinator addresses:
      *      Local:      0x88Fd2bAd06285b90341458731dEc2c180cd2e892
      *      Ropsten:    0xf720CF1B963e0e7bE9F58fd471EFa67e7bF00cfb
+     *      Kovan:      0xdD3782915140c8f3b190B5D67eAc6dc5760C46E9
      * LINK token addresses:
      *      Local:      0xF4d0e956464396cEBC998F60C0AB8720161fa4c2
      *      Ropsten:    0x20fE562d797A42Dcb3399062AE9546cd06f63280
+     *      Kovan:      0xa36085F69e2889c224210F603D836748e7dC0088
      * Key Hash:
      *      Local:      0x555d3f000257eefb2c93b59b0b6ca2b5fedd06375051d32617731f93cfa806af
      *      Ropsten:    0xced103054e349b8dfb51352f0f8fa9b5d20dde3d06f9f43cb2b85bc64b238205
+     *      Kovan:      0x6c3699283bda56ad74f6b855546325b68d482e983852a7a82979cc4807b641f4
      */
     constructor(
         address _vrfCoordinator,
         address _link,
-        address _governance
+        address _governance,
+        bytes32 _keyHash,
+        uint256 _vrf_fee
     ) public VRFConsumerBase(_vrfCoordinator, _link) {
-        keyHash = 0x555d3f000257eefb2c93b59b0b6ca2b5fedd06375051d32617731f93cfa806af;
+        // keyHash = _keyHash;
+        // fee = _vrf_fee;
+        // *TODO* remove hard coded for Kovan
+        keyHash = 0x6c3699283bda56ad74f6b855546325b68d482e983852a7a82979cc4807b641f4;
         fee = 0.1 * 10**18; // 0.1 LINK
         governance = Governance(_governance);
     }

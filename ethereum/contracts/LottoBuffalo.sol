@@ -39,7 +39,11 @@ contract LottoBuffalo is ChainlinkClient, Ownable {
     uint256 public ORACLE_PAYMENT = 1000000000000000000;
     // Alarm stuff
     address private CHAINLINK_ALARM_ORACLE;
-    bytes32 private CHAINLINK_ALARM_JOB_ID = "778633ef18884692adc1fe9592107957";
+
+    // *TODO * hard coded for kovan as this is tricky , its a String not a Hex number !
+    bytes32 private CHAINLINK_ALARM_JOB_ID = "a7ab70d561d34eb49e9b1612fd2e044b";
+    // bytes32 private CHAINLINK_ALARM_JOB_ID = "778633ef18884692adc1fe9592107957";
+
     // VRF stuff
     // bytes32 internal _keyHash;
     uint256 public RANDOMRESULT;
@@ -194,5 +198,13 @@ contract LottoBuffalo is ChainlinkClient, Ownable {
 
     function isFinished() public view returns (bool) {
         return stage == Stages.FINISHED;
+    }
+
+    function getStage() public view returns (Stages) {
+        return stage;
+    }
+
+    function setStage(Stages _stage) external onlyOwner {
+        stage = _stage;
     }
 }
