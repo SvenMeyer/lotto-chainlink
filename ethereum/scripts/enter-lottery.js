@@ -21,7 +21,7 @@ module.exports = async callback => {
     console.log("networkId =", networkId);
 
     const networkIdName = {
-       1: 'mainnet',
+       1: 'mainnet',     // live
        3: 'ropsten',
        4: 'rinkeby',
        5: 'goerli',
@@ -49,7 +49,11 @@ module.exports = async callback => {
     Oracle.setProvider(web3.eth.currentProvider)
     LinkToken.setProvider(web3.eth.currentProvider)
 
-    const [defaultAccount, ...players] = await web3.eth.getAccounts()
+    const accounts = await web3.eth.getAccounts();
+    [defaultAccount, player_1, player_2, ...players] = accounts;
+
+    console.log("defaultAccount =", defaultAccount);
+
     const lotto = await LottoBuffalo.deployed()
     // const oracle = await Oracle.at('0x8886DB5440147798D27E8AB9c9090140b5cEcA47')
     const linkToken = await LinkToken.at(Address.LINK)
@@ -93,15 +97,20 @@ module.exports = async callback => {
     const isOpen = await lotto.isOpen()
 
     if (!isOpen) {
-      console.log('Opening lottery!')
+      console.log('>>>>>>>>>> Opening lottery ! <<<<<<<<<<')
       const open_tx = await lotto.open(300)
-      console.log('Open Logs: ', open_tx.logs)
+      console.log('open_tx.logs: ', open_tx.logs)
     }
 
-    const tx_default_join = await lotto.join({ from: defaultAccount, value: 1000000000000000 })
-    await Promise.all(players.map(async from => await lotto.join({ from, value: 1000000000000000 })))
+    for (i=0; i<3; i++) {
+      console.log("player", i , "to join);")
+      let tx_join = await lotto.join({ from: accounts[i] }) // , value: 1000000000000000 })
+      console.log(tx_join)
+    }
 
-    console.log(tx_default_join)
+    // await Promise.all(players.map(async from => await lotto.join({ from, value: 1000000000000000 })))
+
+
     await display()
 
     callback()
