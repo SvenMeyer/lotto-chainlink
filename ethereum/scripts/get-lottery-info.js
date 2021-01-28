@@ -1,3 +1,4 @@
+const LinkTokenInterface = artifacts.require('LinkTokenInterface')
 const LottoBuffalo = artifacts.require('LottoBuffalo')
 const RandomNumberConsumer = artifacts.require('RandomNumberConsumer')
 
@@ -5,6 +6,10 @@ module.exports = async callback => {
   try {
     const lotto = await LottoBuffalo.deployed()
     const random = await RandomNumberConsumer.deployed()
+
+    const linkTokenAddress = await lotto.getChainlinkToken()
+    console.log("linkTokenAddress:", linkTokenAddress);
+    const linkToken = await LinkTokenInterface.at(linkTokenAddress)
 
 
 		let _id = await lotto.id.call()
@@ -25,9 +30,6 @@ module.exports = async callback => {
 		let _players = await lotto.getPlayers()
 		console.log(`Players: `, _players)
 
-		let _lotteryAmount = await lotto.getLotteryAmount()
-		console.log(`Lottery Amount: ${_lotteryAmount}`)
-
 		let _alarmAddress = await lotto.getAlarmAddress()
 		console.log(`Alarm Address: ${_alarmAddress}`)
 
@@ -37,11 +39,14 @@ module.exports = async callback => {
 		let _randomResult = await lotto.RANDOMRESULT.call()
 		console.log(`Random Result: ${_randomResult}`)
 
-		let _lottoLINKbalance = await lotto.getLINKbalance()
-		console.log('_lottoLINKbalance: $(_lottoLINKbalance')
+		let _lotteryAmount = await lotto.getLotteryAmount()
+    console.log(`Lottery Amount: ${_lotteryAmount}`)
 
-		let _randomLINKbalance = await random.getLINKbalance()
-		console.log('_randomLINKbalance: $(_randomLINKbalance')
+    const lottoLINKbalance = await linkToken.balanceOf(lotto.address)
+    console.log('lottoLINKbalance: ', lottoLINKbalance / (10**18) , "LINK");
+
+    const randomLINKbalance = await linkToken.balanceOf(random.address)
+    console.log('randomLINKbalance: ', parseInt(randomLINKbalance.toString()) / (10**18) , "LINK");
 
     callback()
 	}
