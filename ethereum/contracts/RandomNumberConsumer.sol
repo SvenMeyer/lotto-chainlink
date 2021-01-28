@@ -3,13 +3,18 @@ pragma solidity ^0.6.6;
 
 import "@chainlink/contracts/src/v0.6/VRFRequestIDBase.sol";
 import "@chainlink/contracts/src/v0.6/VRFConsumerBase.sol";
+import "@chainlink/contracts/src/v0.6/interfaces/LinkTokenInterface.sol";
+
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 import {Governance} from "./interfaces/Governance.sol";
 import {Lottery}    from "./interfaces/Lottery.sol";
 
-contract RandomNumberConsumer is VRFConsumerBase {
+contract RandomNumberConsumer is VRFConsumerBase, Ownable {
 
     Governance public governance;
+
+    address public chainlinkTokenAddress;
 
     bytes32 internal keyHash;
 
@@ -52,12 +57,15 @@ contract RandomNumberConsumer is VRFConsumerBase {
         bytes32 _keyHash,
         uint256 _vrf_fee
     ) public VRFConsumerBase(_vrfCoordinator, _link) {
+        chainlinkTokenAddress = _link;
+        governance = Governance(_governance);
         // keyHash = _keyHash;
         // fee = _vrf_fee;
+
         // *TODO* remove hard coded for Kovan
         keyHash = 0x6c3699283bda56ad74f6b855546325b68d482e983852a7a82979cc4807b641f4;
         fee = 0.1 * 10**18; // 0.1 LINK
-        governance = Governance(_governance);
+
     }
 
     function getLotteryNumber(uint256 lotteryId, uint256 seed) external {
@@ -99,7 +107,14 @@ contract RandomNumberConsumer is VRFConsumerBase {
     }
 
 
-    function getLINKbalance() public view returns (uint256) {
-        return LINK.balanceOf(address(this));
+    /**
+     * Withdraw LINK from this contract
+     *
+     * NOTE: DO NOT USE THIS IN PRODUCTION AS IT CAN BE CALLED BY ANY ADDRESS.
+     * THIS IS PURELY FOR EXAMPLE PURPOSES ONLY.
+     */
+    function withdrawLink() external onlyOwner {
+        LinkTokenInterface linkToken = LinkTokenInterface(chainlinkTokenAddress);
+        require(linkToken.transfer(msg.sender, linkToken.balanceOf(address(this))), "Unable to transfer");
     }
 }

@@ -2,8 +2,10 @@
 pragma solidity ^0.6.6;
 
 import "@chainlink/contracts/src/v0.6/ChainlinkClient.sol";
-import "openzeppelin-solidity/contracts/access/Ownable.sol";
-import "openzeppelin-solidity/contracts/utils/EnumerableSet.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/EnumerableSet.sol";
+// import "openzeppelin-solidity/contracts/access/Ownable.sol";
+// import "openzeppelin-solidity/contracts/utils/EnumerableSet.sol";
 
 import {Governance} from "./interfaces/Governance.sol";
 import {Randomness} from "./interfaces/Randomness.sol";
@@ -14,7 +16,9 @@ import {Randomness} from "./interfaces/Randomness.sol";
  * @dev This contract is designed to work on multiple networks, including
  * local test networks
  */
+
 contract LottoBuffalo is ChainlinkClient, Ownable {
+
     using EnumerableSet for EnumerableSet.AddressSet;
 
     struct GameHistory {
@@ -57,7 +61,7 @@ contract LottoBuffalo is ChainlinkClient, Ownable {
 
     Stages private stage;
 
-    event Open(uint256 _id, address indexed _from, uint256 _duration);
+    event Open(uint256 _id, address indexed _from, uint256 _durationInSeconds);
     event Close(uint256 _id);
     event Winner(
         uint256 _id,
@@ -99,7 +103,7 @@ contract LottoBuffalo is ChainlinkClient, Ownable {
     }
 
     function join() public payable atStage(Stages.OPEN) {
-        assert(msg.value == MINIMUM);
+        // assert(msg.value == MINIMUM);    *TEST* let allow users to join for free
         players.push(msg.sender);
         // TODO: check that player is not already in lottery
         emit PlayerJoined(id, msg.sender);
@@ -109,24 +113,26 @@ contract LottoBuffalo is ChainlinkClient, Ownable {
      * Opens the lottery allowing players to join.
      *
      * Sends a request to the Chainlink alarm oracle that will automatically
-     * close the lottery based off the duration passed.
+     * close the lottery after durationInSeconds passed.
      *
-     * @param duration the length in time the lottery will be open.
+     * @notice only the owner/deployer of the contract can call this function
+     * @param durationInSeconds the length in seconds the lottery will be open.
      */
-    function open(uint256 duration) public atStage(Stages.CLOSED) {
+    function open(uint256 durationInSeconds) public onlyOwner atStage(Stages.CLOSED) {
         Chainlink.Request memory req = buildChainlinkRequest(
             CHAINLINK_ALARM_JOB_ID,
             address(this),
-            this.fulfill.selector
+            this.fulfillAlarm.selector
         );
 
-        req.addUint("until", block.timestamp + duration);   // duration in seconds
+        req.addUint("until", block.timestamp + durationInSeconds);
         sendChainlinkRequestTo(CHAINLINK_ALARM_ORACLE, req, ORACLE_PAYMENT);
         stage = Stages.OPEN;
-        emit Open(id, msg.sender, duration);
+        emit Open(id, msg.sender, durationInSeconds);
     }
 
-    function fulfill(bytes32 requestId)
+    // function fulfillAlarm(bytes32 _requestId, uint256 _volume) public recordChainlinkFulfillment(_requestId)
+    function fulfillAlarm(bytes32 requestId)
         public
         atStage(Stages.OPEN)
         recordChainlinkFulfillment(requestId)
@@ -208,7 +214,14 @@ contract LottoBuffalo is ChainlinkClient, Ownable {
         stage = _stage;
     }
 
-    function getLINKbalance() public view returns (uint256) {
-        return LINK.balanceOf(address(this));
+    /**
+     * Withdraw LINK from this contract
+     *
+     * NOTE: DO NOT USE THIS IN PRODUCTION AS IT CAN BE CALLED BY ANY ADDRESS.
+     * THIS IS PURELY FOR EXAMPLE PURPOSES ONLY.
+     */
+    function withdrawLink() external onlyOwner {
+        LinkTokenInterface linkToken = LinkTokenInterface(chainlinkTokenAddress());
+        require(linkToken.transfer(msg.sender, linkToken.balanceOf(address(this))), "Unable to transfer");
     }
 }
