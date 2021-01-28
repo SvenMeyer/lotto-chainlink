@@ -8,6 +8,7 @@ import {Governance} from "./interfaces/Governance.sol";
 import {Lottery}    from "./interfaces/Lottery.sol";
 
 contract RandomNumberConsumer is VRFConsumerBase {
+
     Governance public governance;
 
     bytes32 internal keyHash;
@@ -95,5 +96,10 @@ contract RandomNumberConsumer is VRFConsumerBase {
         uint256 lotteryId = requestIds[requestId];
         randomResults[lotteryId] = randomness;
         Lottery(governance.lottery()).close(randomness);
+    }
+
+
+    function getLINKbalance() public view returns (uint256) {
+        return LINK.balanceOf(address(this));
     }
 }

@@ -120,7 +120,7 @@ contract LottoBuffalo is ChainlinkClient, Ownable {
             this.fulfill.selector
         );
 
-        req.addUint("until", now + duration);
+        req.addUint("until", block.timestamp + duration);   // duration in seconds
         sendChainlinkRequestTo(CHAINLINK_ALARM_ORACLE, req, ORACLE_PAYMENT);
         stage = Stages.OPEN;
         emit Open(id, msg.sender, duration);
@@ -206,5 +206,9 @@ contract LottoBuffalo is ChainlinkClient, Ownable {
 
     function setStage(Stages _stage) external onlyOwner {
         stage = _stage;
+    }
+
+    function getLINKbalance() public view returns (uint256) {
+        return LINK.balanceOf(address(this));
     }
 }
