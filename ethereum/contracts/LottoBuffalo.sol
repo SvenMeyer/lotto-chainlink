@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: MIT
+
 pragma solidity ^0.6.6;
+
+pragma experimental ABIEncoderV2;
 
 import "@chainlink/contracts/src/v0.6/ChainlinkClient.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/EnumerableSet.sol";
-// import "openzeppelin-solidity/contracts/access/Ownable.sol";
-// import "openzeppelin-solidity/contracts/utils/EnumerableSet.sol";
 
 import {Governance} from "./interfaces/Governance.sol";
 import {Randomness} from "./interfaces/Randomness.sol";
@@ -19,11 +20,22 @@ import {Randomness} from "./interfaces/Randomness.sol";
 
 contract LottoBuffalo is ChainlinkClient, Ownable {
 
+    // *TEST*
+    Chainlink.Request public alarmRequest;
+
+    uint256 public alarmStartTime;
+    uint256 public alarmSetTime;
+    uint256 public alarmReceivedTime;
+
+    bytes32 public alarmRequestId;
+    // *TEST* END
+
+    uint256 public lastRandom;
+
     using EnumerableSet for EnumerableSet.AddressSet;
 
     struct GameHistory {
-        // Feasible to play more than 4,294,967,295 games?
-        uint32 played;
+        uint256 played;
     }
 
     struct Player {
@@ -31,7 +43,14 @@ contract LottoBuffalo is ChainlinkClient, Ownable {
         GameHistory gameHistory;
     }
 
-    enum Stages {OPEN, CLOSED, FINISHED}
+    enum Stages {
+        OPEN,
+        CLOSED,
+        FINISHED,
+        RANDOM_REQUEST_SENT,
+        RANDOM_PROCESSED,
+        WINNER_PAID
+    }
 
     address payable[] public players;
     mapping(address => uint256) playerIdsByAddress;
@@ -39,18 +58,15 @@ contract LottoBuffalo is ChainlinkClient, Ownable {
     Governance public governance;
     // .01 ETH
     uint256 public MINIMUM = 1000000000000000;
-    // 0.1 LINK
-    uint256 public ORACLE_PAYMENT = 1000000000000000000;
+
+    uint256 public ORACLE_PAYMENT = 100000000000000000;  // 0.1 LINK
+
     // Alarm stuff
     address private CHAINLINK_ALARM_ORACLE;
 
     // *TODO * hard coded for kovan as this is tricky , its a String not a Hex number !
     bytes32 private CHAINLINK_ALARM_JOB_ID = "a7ab70d561d34eb49e9b1612fd2e044b";
     // bytes32 private CHAINLINK_ALARM_JOB_ID = "778633ef18884692adc1fe9592107957";
-
-    // VRF stuff
-    // bytes32 internal _keyHash;
-    uint256 public RANDOMRESULT;
 
     /**
      * The current lottery id.
@@ -71,6 +87,7 @@ contract LottoBuffalo is ChainlinkClient, Ownable {
         uint256 _amount
     );
     event PlayerJoined(uint256 _id, address indexed _from);
+
 
     modifier atStage(Stages _stage) {
         // string(abi.encodePacked(_.name, " can only be called at stage: ", _stage, "\n Current stage: ", stage))
@@ -102,12 +119,6 @@ contract LottoBuffalo is ChainlinkClient, Ownable {
         CHAINLINK_ALARM_ORACLE = _alarmOracle;
     }
 
-    function join() public payable atStage(Stages.OPEN) {
-        // assert(msg.value == MINIMUM);    *TEST* let allow users to join for free
-        players.push(msg.sender);
-        // TODO: check that player is not already in lottery
-        emit PlayerJoined(id, msg.sender);
-    }
 
     /**
      * Opens the lottery allowing players to join.
@@ -131,33 +142,77 @@ contract LottoBuffalo is ChainlinkClient, Ownable {
         emit Open(id, msg.sender, durationInSeconds);
     }
 
-    // function fulfillAlarm(bytes32 _requestId, uint256 _volume) public recordChainlinkFulfillment(_requestId)
-    function fulfillAlarm(bytes32 requestId)
-        public
-        atStage(Stages.OPEN)
-        recordChainlinkFulfillment(requestId)
+
+    function openTestVersion(uint256 durationInSeconds) public onlyOwner returns (bytes32 requestId)
     {
+        Chainlink.Request memory request = buildChainlinkRequest(CHAINLINK_ALARM_JOB_ID, address(this), this.fulfillAlarm.selector);
+
+        alarmStartTime = block.timestamp;
+        alarmSetTime   = alarmStartTime + durationInSeconds;
+        request.addUint("until", alarmSetTime);
+
+        alarmRequest = request; // store for *TEST*
+
+        requestId = sendChainlinkRequestTo(CHAINLINK_ALARM_ORACLE, request, ORACLE_PAYMENT);
+
+        alarmRequestId = requestId; // store for *TEST*
+
+        stage = Stages.OPEN;
+        emit Open(id, msg.sender, durationInSeconds);
+
+        return requestId;
+    }
+
+
+    function join() public payable atStage(Stages.OPEN) {
+        // assert(msg.value == MINIMUM);    *TEST* let users join for free (if they want)
+        players.push(msg.sender);
+        // TODO: check that player is not already in lottery
+        emit PlayerJoined(id, msg.sender);
+    }
+
+
+    // function fulfillAlarm(bytes32 _requestId, uint256 _volume) public recordChainlinkFulfillment(_requestId)
+    function fulfillAlarm(bytes32 requestId) public atStage(Stages.OPEN) recordChainlinkFulfillment(requestId)
+    {
+        stage = Stages.FINISHED;    // time is over for users to join
+
         // TODO: add a require here so that only the oracle contract can
         // call the fulfill alarm method
-        stage = Stages.FINISHED;
-        Randomness(governance.randomness()).getLotteryNumber(id, id);
+
+        // Randomness(governance.randomness()).getLotteryNumber(id, 0x5eed);   // *TODO* better seed !
+        Randomness(governance.randomness()).requestRandomNumber(id, 0x5eed);
+
         id = id + 1;
     }
 
-    function close(uint256 randomness) external atStage(Stages.FINISHED) {
-        require(randomness > 0, "random-not-found");
+    /**
+     * @dev callback fulfillRandomness
+     * @dev store and later process random number
+     */
+    function close(uint256 randomNumberVRF) external atStage(Stages.FINISHED) {
+        require(randomNumberVRF > 0, "random number not yet ready");
 
-        uint256 index = randomness % players.length;
+        lastRandom = randomNumberVRF;
+
+        uint256 index = lastRandom % players.length;
+
+        stage = Stages.RANDOM_PROCESSED;
+
+        // transfer contract balance to winner
         uint256 amount = address(this).balance;
-        // all units of transfer are in wei
         players[index].transfer(amount);
-        emit Winner(id, randomness, index, players[index], amount);
+        emit Winner(id, lastRandom, index, players[index], amount);
+        stage = Stages.WINNER_PAID;
+    }
+
+    function resetLottery() external onlyOwner {
         // reset players
         // TODO: reset lobbies/groups rather than players
+        lastRandom = 0;
         players = new address payable[](0);
         stage = Stages.CLOSED;
         emit Close(id);
-        // open(5 minutes);
     }
 
     /**
@@ -168,12 +223,12 @@ contract LottoBuffalo is ChainlinkClient, Ownable {
     function getChainlinkToken() public view returns (address) {
         return chainlinkTokenAddress();
     }
-
+/*
     function getPlayer(address _player) public view returns (address payable) {
         uint256 _playerId = playerIdsByAddress[_player];
         return players[_playerId];
     }
-
+*/
     function getAlarmAddress() public view returns (address) {
         return CHAINLINK_ALARM_ORACLE;
     }

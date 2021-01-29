@@ -2,9 +2,14 @@ const { Oracle } = require('@chainlink/contracts/truffle/v0.6/Oracle')
 
 module.exports = async callback => {
 
+  // const Address = {
+  //   Operator: '0x0b83e7104B17eb3775F78A4152A7960A43e475dd',
+  //   Oracle:   '0x8886DB5440147798D27E8AB9c9090140b5cEcA47'
+  // }
+
   const Address = {
-    Operator: '0x0b83e7104B17eb3775F78A4152A7960A43e475dd',
-    Oracle: '0x8886DB5440147798D27E8AB9c9090140b5cEcA47'
+    Operator: '0x9D1F9755D5103e563b3A68edc37595b0a04E3939',
+    Oracle:   '0x0'
   }
 
   try {
@@ -13,7 +18,7 @@ module.exports = async callback => {
     const [defaultAccount] = await web3.eth.getAccounts()
     const oracle = await Oracle.at(Address.Oracle)
     let isAuthorized = await oracle.getAuthorizationStatus(Address.Operator)
-    
+
     console.log('Operator Address: ', Address.Operator)
     console.log('Operator Authorized: ', isAuthorized)
 

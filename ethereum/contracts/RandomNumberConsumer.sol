@@ -46,6 +46,18 @@ contract RandomNumberConsumer is VRFConsumerBase, Ownable {
         fee = _vrf_fee;
     }
 
+//  function getLotteryNumber(uint256 lotteryId, uint256 seed) external {
+    function requestRandomNumber(uint256 lotteryId, uint256 userProvidedSeed) external { //returns (bytes32 requestId) {
+        require(randomResults[lotteryId] == 0, "already-found-random");
+        require(governance.lottery() == msg.sender,  "not-lottery-address");
+        require(LINK.balanceOf(address(this)) > fee, "Not enough LINK for VRF request");
+
+        bytes32 _requestId = requestRandomness(keyHash, fee, userProvidedSeed);
+        requestIds[_requestId] = lotteryId;
+    }
+
+
+
     function getLotteryNumber(uint256 lotteryId, uint256 seed) external {
         require(randomResults[lotteryId] == 0, "already-found-random");
         require(governance.lottery() == msg.sender, "not-lottery-address");

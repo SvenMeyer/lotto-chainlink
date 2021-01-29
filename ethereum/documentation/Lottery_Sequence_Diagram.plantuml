@@ -1,3 +1,5 @@
+/' https://plantuml.com '/
+
 @startuml Token Lottery Sequence Diagram
 
 actor Admin as admin

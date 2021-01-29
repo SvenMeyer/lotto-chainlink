@@ -2,5 +2,5 @@
 pragma solidity ^0.6.6;
 
 interface Randomness {
-    function getLotteryNumber(uint256 lotteryId, uint256 seed) external;
+    function requestRandomNumber(uint256 lotteryId, uint256 userProvidedSeed) external;
 }

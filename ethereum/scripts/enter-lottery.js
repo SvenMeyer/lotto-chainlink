@@ -1,5 +1,7 @@
 // npx truffle exec scripts/enter-lottery.js --network kovan
 
+const duration = 300; // duration the lottery is open in seconds
+
 const LottoBuffalo = artifacts.require('LottoBuffalo')
 
 const { LinkToken } = require('@chainlink/contracts/truffle/v0.4/LinkToken')
@@ -98,8 +100,12 @@ module.exports = async callback => {
 
     if (!isOpen) {
       console.log('>>>>>>>>>> Opening lottery ! <<<<<<<<<<')
-      const open_tx = await lotto.open(300)
+      console.log('the lottery duration will be', duration, 'seconds')
+      const open_tx = await lotto.open(duration)
       console.log('open_tx.logs: ', open_tx.logs)
+    }
+    else {
+      console.log("The lottery is not open !")
     }
 
     for (i=0; i<3; i++) {
@@ -110,11 +116,11 @@ module.exports = async callback => {
 
     // await Promise.all(players.map(async from => await lotto.join({ from, value: 1000000000000000 })))
 
-
     await display()
 
     callback()
-  } catch (err) {
+  }
+  catch (err) {
     callback(err)
   }
 }
