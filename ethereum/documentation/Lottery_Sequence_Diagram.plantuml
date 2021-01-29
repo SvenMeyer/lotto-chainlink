@@ -1,0 +1,55 @@
+@startuml Token Lottery Sequence Diagram
+
+actor Admin as admin
+actor User_1 as user1
+actor User_2 as user2
+participant Staking_contract as staking
+participant Lottery_contract as lottery
+control Chainlink_Alarm      as alarm
+participant Random_contract  as random
+control Chainlink_Random     as vrf
+participant TokenSale_contract as tokensale
+
+group Users staking $ZEE
+	user1 -> staking  : stake $ZEE
+	user2 -> staking  : stake $ZEE
+end
+
+group Contract Setup
+	admin -> staking : record/lock staking amounts
+	admin -> lottery : send $LINK
+	admin -> random  : send $LINK
+end
+
+group Users join lottery / claim tickets
+	admin -> lottery : open
+
+	lottery -> alarm : sendChainlinkRequest(alarm duration)
+	user1 -> lottery : join
+	user2 -> lottery : join
+
+	alarm   -> lottery : fulfillAlarm
+	lottery -> lottery : stage = FINISHED
+end
+
+group - Request Randomness
+	lottery -> random: getLotteryNumber(id, seed)
+	random -> vrf : requestRandomness
+	vrf -> random : fulfillRandomness
+	random -> lottery : close
+end
+
+group - Draw Tickets / Process Randomness
+	admin -> lottery : drawTickets
+	lottery -> tokensael : enableTokensale()
+end
+
+group - Users purchase Token
+	user1 -> tokensale : send account address
+	tokensale -> lottery : checkTickets
+	lottery -> tokensale : send number of winner tickets
+	user1 -> tokensale : send $ETH
+	tokensale -> user1 : send $TOKEN
+end
+
+@enduml
