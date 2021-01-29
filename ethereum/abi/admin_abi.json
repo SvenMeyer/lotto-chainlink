@@ -12,6 +12,7 @@
 		"stateMutability": "nonpayable",
 		"type": "function"
 	},
+
 	{
 		"inputs": [],
 		"name": "getLotteryAmount",
@@ -26,6 +27,7 @@
 		"type": "function",
 		"constant": true
 	},
+
 	{
 		"inputs": [],
 		"name": "isOpen",
@@ -40,6 +42,7 @@
 		"type": "function",
 		"constant": true
 	},
+
 	{
 		"inputs": [],
 		"name": "isClosed",
@@ -54,6 +57,7 @@
 		"type": "function",
 		"constant": true
 	},
+
 	{
 		"inputs": [],
 		"name": "isFinished",
@@ -68,6 +72,7 @@
 		"type": "function",
 		"constant": true
 	},
+
 	{
 		"inputs": [],
 		"name": "getStage",
@@ -82,6 +87,7 @@
 		"type": "function",
 		"constant": true
 	},
+
 	{
 		"inputs": [
 			{
@@ -102,11 +108,87 @@
 		"type": "function",
 		"constant": true
 	},
+
 	{
 		"inputs": [],
 		"name": "resetLottery",
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
+	},
+
+	{
+		"inputs": [],
+		"name": "lastRandom",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function",
+		"constant": true
+	},
+
+	{
+		"inputs": [],
+		"name": "alarmRequestId",
+		"outputs": [
+			{
+				"internalType": "bytes32",
+				"name": "",
+				"type": "bytes32"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function",
+		"constant": true
+	},
+
+	{
+		"inputs": [],
+		"name": "alarmStartTime",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function",
+		"constant": true
+	},
+
+	{
+		"inputs": [],
+		"name": "alarmSetTime",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function",
+		"constant": true
+	},
+
+	{
+		"inputs": [],
+		"name": "alarmReceivedTime",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function",
+		"constant": true
 	}
 ]

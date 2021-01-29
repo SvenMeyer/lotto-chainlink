@@ -8,8 +8,8 @@ import "@chainlink/contracts/src/v0.6/ChainlinkClient.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/EnumerableSet.sol";
 
-import {Governance} from "./interfaces/GovernanceInterface.sol";
-import {Randomness} from "./interfaces/RandomnessInterface.sol";
+import {GovernanceInterface} from "./interfaces/GovernanceInterface.sol";
+import {RandomnessInterface} from "./interfaces/RandomnessInterface.sol";
 
 /**
  * @title MyContract is an example contract which requests data from
@@ -20,15 +20,14 @@ import {Randomness} from "./interfaces/RandomnessInterface.sol";
 
 contract Lottery is ChainlinkClient, Ownable {
 
-    // *TEST*
-    Chainlink.Request public alarmRequest;
+    GovernanceInterface public governance;
 
+    // log main events of Lottery
+    Chainlink.Request public alarmRequest;
     uint256 public alarmStartTime;
     uint256 public alarmSetTime;
     uint256 public alarmReceivedTime;
-
     bytes32 public alarmRequestId;
-    // *TEST* END
 
     uint256 public lastRandom;
 
@@ -52,30 +51,23 @@ contract Lottery is ChainlinkClient, Ownable {
         WINNER_PAID
     }
 
+    Stages public stage;
+
     address payable[] public players;
-    mapping(address => uint256) playerIdsByAddress;
+    mapping(address => uint256) playerIdsByAddress;  // do we need this ? *TODO*
 
-    Governance public governance;
-    // .01 ETH
-    uint256 public MINIMUM = 1000000000000000;
+    uint256 public MINIMUM = 1000000000000000;  // .01 ETH - we will make joining free - *TODO* remove
 
-    uint256 public ORACLE_PAYMENT = 100000000000000000;  // 0.1 LINK
-
-    // Alarm stuff
+    // parameter for Chainlink Alarm Oracle
+    uint256 public  ORACLE_PAYMENT;          // 100000000000000000;  // 0.1 LINK
     address private CHAINLINK_ALARM_ORACLE;
-
-    // *TODO * hard coded for kovan as this is tricky , its a String not a Hex number !
-    bytes32 private CHAINLINK_ALARM_JOB_ID = "a7ab70d561d34eb49e9b1612fd2e044b";
-    // bytes32 private CHAINLINK_ALARM_JOB_ID = "778633ef18884692adc1fe9592107957";
+    bytes32 private CHAINLINK_ALARM_JOB_ID;  // String (!) for kovan "a7ab70d561d34eb49e9b1612fd2e044b";
 
     /**
      * The current lottery id.
      */
     uint256 public id = 0;
 
-    uint256 public data;
-
-    Stages private stage;
 
     event Open(uint256 _id, address indexed _from, uint256 _durationInSeconds);
     event Close(uint256 _id);
@@ -95,6 +87,7 @@ contract Lottery is ChainlinkClient, Ownable {
         _;
     }
 
+
     /**
      * @notice Deploy the contract with a specified address for the LINK
      * and Oracle contract addresses
@@ -104,19 +97,24 @@ contract Lottery is ChainlinkClient, Ownable {
     constructor(
         address _governance,
         address _link,
-        address _alarmOracle
+        address _alarmOracle,
+        uint256 _alarmFee,
+        bytes32 _alarmJobIdHex  // Job Id String converted to Hex !!!
     ) public {
+        governance = GovernanceInterface(_governance);
+
         if (_link == address(0)) {
             setPublicChainlinkToken();
         } else {
             setChainlinkToken(_link);
         }
 
-        governance = Governance(_governance);
+        CHAINLINK_ALARM_ORACLE = _alarmOracle;
+        CHAINLINK_ALARM_JOB_ID = _alarmJobIdHex;  // String (!) for Kovan "a7ab70d561d34eb49e9b1612fd2e044b"
+        ORACLE_PAYMENT         = _alarmFee;
+
         id = 1;
         stage = Stages.CLOSED;
-
-        CHAINLINK_ALARM_ORACLE = _alarmOracle;
     }
 
 
@@ -129,7 +127,7 @@ contract Lottery is ChainlinkClient, Ownable {
      * @notice only the owner/deployer of the contract can call this function
      * @param durationInSeconds the length in seconds the lottery will be open.
      */
-    function open(uint256 durationInSeconds) public onlyOwner atStage(Stages.CLOSED) {
+    function open_OLD(uint256 durationInSeconds) public onlyOwner atStage(Stages.CLOSED) {
         Chainlink.Request memory req = buildChainlinkRequest(
             CHAINLINK_ALARM_JOB_ID,
             address(this),
@@ -143,8 +141,8 @@ contract Lottery is ChainlinkClient, Ownable {
     }
 
 
-    function openTestVersion(uint256 durationInSeconds) public onlyOwner returns (bytes32 requestId)
-    {
+    function open(uint256 durationInSeconds) public onlyOwner atStage(Stages.CLOSED) returns (bytes32 requestId) {
+
         Chainlink.Request memory request = buildChainlinkRequest(CHAINLINK_ALARM_JOB_ID, address(this), this.fulfillAlarm.selector);
 
         alarmStartTime = block.timestamp;
@@ -172,19 +170,17 @@ contract Lottery is ChainlinkClient, Ownable {
     }
 
 
-    // function fulfillAlarm(bytes32 _requestId, uint256 _volume) public recordChainlinkFulfillment(_requestId)
     function fulfillAlarm(bytes32 requestId) public atStage(Stages.OPEN) recordChainlinkFulfillment(requestId)
     {
         stage = Stages.FINISHED;    // time is over for users to join
 
         // TODO: add a require here so that only the oracle contract can
         // call the fulfill alarm method
-
-        // Randomness(governance.randomness()).getLotteryNumber(id, 0x5eed);   // *TODO* better seed !
-        Randomness(governance.randomness()).requestRandomNumber(id, 0x5eed);
+        RandomnessInterface(governance.randomness()).requestRandomNumber(id, 0x5eed);
 
         id = id + 1;
     }
+
 
     /**
      * @dev callback fulfillRandomness
@@ -194,6 +190,7 @@ contract Lottery is ChainlinkClient, Ownable {
         require(randomNumberVRF > 0, "random number not yet ready");
 
         lastRandom = randomNumberVRF;
+        alarmReceivedTime = block.timestamp;
 
         uint256 index = lastRandom % players.length;
 
@@ -205,6 +202,7 @@ contract Lottery is ChainlinkClient, Ownable {
         emit Winner(id, lastRandom, index, players[index], amount);
         stage = Stages.WINNER_PAID;
     }
+
 
     function resetLottery() external onlyOwner {
         // reset players
@@ -265,6 +263,7 @@ contract Lottery is ChainlinkClient, Ownable {
         return stage;
     }
 
+    // emergency function if process got stuck
     function setStage(Stages _stage) external onlyOwner {
         stage = _stage;
     }

@@ -7,12 +7,12 @@ import "@chainlink/contracts/src/v0.6/interfaces/LinkTokenInterface.sol";
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-import {Governance} from "./interfaces/GovernanceInterface.sol";
-import {Lottery}    from "./interfaces/LotteryInterface.sol";
+import {GovernanceInterface} from "./interfaces/GovernanceInterface.sol";
+import {LotteryInterface}    from "./interfaces/LotteryInterface.sol";
 
 contract RandomNumberConsumer is VRFConsumerBase, Ownable {
 
-    Governance public governance;
+    GovernanceInterface public governance;
 
     address public chainlinkTokenAddress;
 
@@ -41,7 +41,7 @@ contract RandomNumberConsumer is VRFConsumerBase, Ownable {
         uint256 _vrf_fee
     ) public VRFConsumerBase(_vrfCoordinator, _link) {
         chainlinkTokenAddress = _link;
-        governance = Governance(_governance);
+        governance = GovernanceInterface(_governance);
         keyHash = _keyHash;
         fee = _vrf_fee;
     }
@@ -68,7 +68,7 @@ contract RandomNumberConsumer is VRFConsumerBase, Ownable {
         require(msg.sender == vrfCoordinator, "Fulfilment only permitted by Coordinator");
         uint256 lotteryId = requestIds[requestId];
         randomResults[lotteryId] = randomness;
-        Lottery(governance.lottery()).close(randomness);
+        LotteryInterface(governance.lottery()).close(randomness);
     }
 
 

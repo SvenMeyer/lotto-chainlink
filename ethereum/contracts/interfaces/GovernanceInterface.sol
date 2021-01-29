@@ -2,7 +2,7 @@
 
 pragma solidity ^0.6.6;
 
-interface Governance {
+interface GovernanceInterface {
     function lottery()    external returns (address);
     function randomness() external returns (address);
 }

@@ -45,10 +45,6 @@ module.exports = async (deployer, network, [defaultAccount]) => {
 
   console.log(Address);
 
-  // *TODO* use these parameter for contract constructor as well
-  // network_config.ALARM_JOB_ID_HEX  // this one is tricky - it is a String not a Hex number !!
-  // network_config.ALARM_FEE
-
   try {
     await deployer.deploy(LotteryGovernance, { from: defaultAccount } )
 
@@ -59,6 +55,8 @@ module.exports = async (deployer, network, [defaultAccount]) => {
       _lotteryGovernance.address,
       Address.LINK,
       Address.ORACLE,
+      network_config.ALARM_FEE,
+      network_config.ALARM_JOB_ID_HEX,
       { from: defaultAccount }
     )
 
