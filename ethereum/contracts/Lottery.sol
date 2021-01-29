@@ -8,8 +8,8 @@ import "@chainlink/contracts/src/v0.6/ChainlinkClient.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/EnumerableSet.sol";
 
-import {Governance} from "./interfaces/Governance.sol";
-import {Randomness} from "./interfaces/Randomness.sol";
+import {Governance} from "./interfaces/GovernanceInterface.sol";
+import {Randomness} from "./interfaces/RandomnessInterface.sol";
 
 /**
  * @title MyContract is an example contract which requests data from
@@ -18,7 +18,7 @@ import {Randomness} from "./interfaces/Randomness.sol";
  * local test networks
  */
 
-contract LottoBuffalo is ChainlinkClient, Ownable {
+contract Lottery is ChainlinkClient, Ownable {
 
     // *TEST*
     Chainlink.Request public alarmRequest;

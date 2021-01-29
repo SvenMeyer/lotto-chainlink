@@ -1,4 +1,4 @@
-const Lottery = artifacts.require('LottoBuffalo')
+const Lottery = artifacts.require('Lottery')
 const RandomNumberConsumer = artifacts.require('RandomNumberConsumer')
 
 module.exports = async callback => {

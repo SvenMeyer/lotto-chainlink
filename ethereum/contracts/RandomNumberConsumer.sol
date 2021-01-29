@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.6.6;
 
-import "@chainlink/contracts/src/v0.6/VRFRequestIDBase.sol";
+import "@chainlink/contracts/src/v0.6/VRFRequestIDBase.sol";    // likely not required
 import "@chainlink/contracts/src/v0.6/VRFConsumerBase.sol";
 import "@chainlink/contracts/src/v0.6/interfaces/LinkTokenInterface.sol";
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-import {Governance} from "./interfaces/Governance.sol";
-import {Lottery}    from "./interfaces/Lottery.sol";
+import {Governance} from "./interfaces/GovernanceInterface.sol";
+import {Lottery}    from "./interfaces/LotteryInterface.sol";
 
 contract RandomNumberConsumer is VRFConsumerBase, Ownable {
 

@@ -1,19 +1,13 @@
 // npx truffle exec scripts/enter-lottery.js --network kovan
 
-const duration = 300; // duration the lottery is open in seconds
-
-const LottoBuffalo = artifacts.require('LottoBuffalo')
+const Lottery = artifacts.require('Lottery')
 
 const { LinkToken } = require('@chainlink/contracts/truffle/v0.4/LinkToken')
-const { Oracle } = require('@chainlink/contracts/truffle/v0.6/Oracle')
-// const { VRFCoordinator } = require('@chainlink/contracts/truffle/v0.6/VRFCoordinator')
+const { Oracle }    = require('@chainlink/contracts/truffle/v0.6/Oracle')
 
 const truffle_config = require('../truffle-config.js');
 
-/*
-  This script makes it easy to read the data variable
-  of the requesting contract.
-*/
+const duration = 300; // duration the lottery is open in seconds
 
 module.exports = async callback => {
 
@@ -56,15 +50,15 @@ module.exports = async callback => {
 
     console.log("defaultAccount =", defaultAccount);
 
-    const lotto = await LottoBuffalo.deployed()
+    const lotto = await Lottery.deployed()
     // const oracle = await Oracle.at('0x8886DB5440147798D27E8AB9c9090140b5cEcA47')
     const linkToken = await LinkToken.at(Address.LINK)
 
     // let isAuthorized = await oracle.getAuthorizationStatus(Address.VRF)
     let linkAmount = await linkToken.balanceOf(lotto.address)
 
-    console.log('LottoBuffalo Address: ', lotto.address)
-    console.log(`LottoBuffalo LINK: ${linkAmount}`)
+    console.log('Lottery Address: ', lotto.address)
+    console.log(`Lottery LINK: ${linkAmount}`)
     // console.log('VRF isAuthorized: ', isAuthorized)
 
     // await oracle.setFulfillmentPermission(Address.VRF, true, { from: defaultAccount })

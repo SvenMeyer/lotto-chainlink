@@ -1,8 +1,8 @@
-const LottoBuffalo = artifacts.require('LottoBuffalo')
+const Lottery = artifacts.require('Lottery')
 
 module.exports = async callback => {
   try {
-    const lotto = await LottoBuffalo.deployed()
+    const lotto = await Lottery.deployed()
     const amount = await lotto.getLotteryAmount()
     console.log(`Lottery Amount: ${amount}`)
     callback()

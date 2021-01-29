@@ -1,5 +1,5 @@
 const LinkTokenInterface = artifacts.require('LinkTokenInterface')
-const Lottery = artifacts.require('LottoBuffalo')
+const Lottery = artifacts.require('Lottery')
 const RandomNumberConsumer = artifacts.require('RandomNumberConsumer')
 
 /*
