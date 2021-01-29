@@ -46,51 +46,26 @@ contract RandomNumberConsumer is VRFConsumerBase, Ownable {
         fee = _vrf_fee;
     }
 
-//  function getLotteryNumber(uint256 lotteryId, uint256 seed) external {
+
+    /**
+     * @dev request a random uint256 from Chainlink VRF Coordinator
+     * @dev VRF Coordinator will call function fulfillRandomness once random number is ready
+     */
     function requestRandomNumber(uint256 lotteryId, uint256 userProvidedSeed) external { //returns (bytes32 requestId) {
         require(randomResults[lotteryId] == 0, "already-found-random");
         require(governance.lottery() == msg.sender,  "not-lottery-address");
-        require(LINK.balanceOf(address(this)) > fee, "Not enough LINK for VRF request");
+        require(LINK.balanceOf(address(this)) >= fee, "Not enough LINK for VRF request");
 
         bytes32 _requestId = requestRandomness(keyHash, fee, userProvidedSeed);
         requestIds[_requestId] = lotteryId;
     }
 
 
-
-    function getLotteryNumber(uint256 lotteryId, uint256 seed) external {
-        require(randomResults[lotteryId] == 0, "already-found-random");
-        require(governance.lottery() == msg.sender, "not-lottery-address");
-
-        bytes32 _requestId = getRandomNumber(seed);
-        requestIds[_requestId] = lotteryId;
-    }
-
     /**
-     * Requests randomness from a user-provided seed
+     * @dev Callback function called by VRF Coordinator once random number is ready
      */
-    function getRandomNumber(uint256 userProvidedSeed)
-        public
-        returns (bytes32 requestId)
-    {
-        require(
-            LINK.balanceOf(address(this)) > fee,
-            "Not enough LINK - fill contract with faucet"
-        );
-        return requestRandomness(keyHash, fee, userProvidedSeed);
-    }
-
-    /**
-     * Callback function used by VRF Coordinator
-     */
-    function fulfillRandomness(bytes32 requestId, uint256 randomness)
-        internal
-        override
-    {
-        require(
-            msg.sender == vrfCoordinator,
-            "Fulfilment only permitted by Coordinator"
-        );
+    function fulfillRandomness(bytes32 requestId, uint256 randomness) internal override {
+        require(msg.sender == vrfCoordinator, "Fulfilment only permitted by Coordinator");
         uint256 lotteryId = requestIds[requestId];
         randomResults[lotteryId] = randomness;
         Lottery(governance.lottery()).close(randomness);
